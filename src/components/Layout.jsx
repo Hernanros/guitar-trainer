@@ -1,14 +1,24 @@
 import React from 'react'
 import useStore from '../store/index.js'
 
+const REVIEW_DAYS = { learning: 7, 'can play': 21 }
+function isDue(s) {
+  const t = REVIEW_DAYS[s.status]
+  if (!t) return false
+  if (!s.lastPracticedAt) return s.practiceCount === 0
+  return Math.floor((Date.now() - s.lastPracticedAt) / 86400000) >= t
+}
+
 const TABS = [
   { id: 'builder', label: 'Session Builder', icon: '🎵' },
   { id: 'practice', label: 'Practice', icon: '🎸' },
+  { id: 'repertoire', label: 'Repertoire', icon: '🎼' },
   { id: 'coach', label: 'AI Coach', icon: '🤖' },
 ]
 
 export default function Layout({ children }) {
-  const { view, setView, currentSession } = useStore()
+  const { view, setView, currentSession, songLog } = useStore()
+  const dueSongs = songLog.filter(isDue).length
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
@@ -39,6 +49,11 @@ export default function Layout({ children }) {
                 {tab.id === 'practice' && currentSession.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                     {currentSession.length}
+                  </span>
+                )}
+                {tab.id === 'repertoire' && dueSongs > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {dueSongs}
                   </span>
                 )}
               </button>

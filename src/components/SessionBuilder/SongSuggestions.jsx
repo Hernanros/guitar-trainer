@@ -138,6 +138,33 @@ export default function SongSuggestions({ techniques }) {
             )}
           </div>
 
+          {/* Top tracks from Spotify */}
+          {spotify.connected && spotify.topTracks?.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-green-400 uppercase tracking-wide">
+                ♫ Your top songs to learn
+              </p>
+              <div className="space-y-2">
+                {spotify.topTracks.slice(0, 8).map((track, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 bg-gray-800 rounded-lg px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-100 truncate font-medium">{track.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{track.artist}</p>
+                    </div>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(track.title + ' ' + track.artist + ' guitar lesson')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors"
+                    >
+                      ▶ Lesson
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Technique tags */}
           {techniques.length > 0 && (
             <p className="text-xs text-gray-500">

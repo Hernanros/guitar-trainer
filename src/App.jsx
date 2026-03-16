@@ -4,6 +4,7 @@ import Layout from './components/Layout.jsx'
 import SessionBuilder from './components/SessionBuilder/index.jsx'
 import Practice from './components/Practice/index.jsx'
 import Coach from './components/Coach/index.jsx'
+import Repertoire from './components/Repertoire/index.jsx'
 import SpotifyCallback from './components/SpotifyCallback.jsx'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
     <Layout>
       {view === 'builder' && <SessionBuilder />}
       {view === 'practice' && <Practice />}
+      {view === 'repertoire' && <Repertoire />}
       {view === 'coach' && <Coach />}
     </Layout>
   )

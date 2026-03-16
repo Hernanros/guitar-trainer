@@ -108,6 +108,14 @@ export async function fetchProfile(token) {
   return spotifyGet('/me', token)
 }
 
+export async function fetchTopTracks(token) {
+  const data = await spotifyGet('/me/top/tracks?limit=15&time_range=medium_term', token)
+  return (data.items ?? []).map((t) => ({
+    title: t.name,
+    artist: t.artists.map((a) => a.name).join(', '),
+  }))
+}
+
 // ── Genre mapping ─────────────────────────────────────────────────────────────
 // Maps Spotify's freeform genre strings to our song library genre tags
 

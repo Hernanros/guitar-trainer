@@ -114,12 +114,13 @@ const useStore = create(
         expiresAt: null,
         topGenres: [],    // our genre tags: ['metal', 'rock', ...]
         topArtists: [],   // display names of top 5 artists
+        topTracks: [],    // [{title, artist}] from /me/top/tracks
       },
 
       setSpotifyClientId: (clientId) =>
         set((state) => ({ spotify: { ...state.spotify, clientId } })),
 
-      setSpotifyConnected: ({ accessToken, expiresAt, displayName, topGenres, topArtists }) =>
+      setSpotifyConnected: ({ accessToken, expiresAt, displayName, topGenres, topArtists, topTracks }) =>
         set((state) => ({
           spotify: {
             ...state.spotify,
@@ -129,6 +130,7 @@ const useStore = create(
             displayName,
             topGenres,
             topArtists,
+            topTracks: topTracks ?? [],
           },
         })),
 
@@ -142,7 +144,44 @@ const useStore = create(
             displayName: null,
             topGenres: [],
             topArtists: [],
+            topTracks: [],
           },
+        })),
+
+      // Song repertoire log
+      songLog: [],
+
+      addToSongLog: ({ title, artist, status = 'want', techniques = [], notes = '' }) => {
+        const entry = {
+          id: `song-log-${Date.now()}`,
+          title,
+          artist,
+          status,
+          techniques,
+          notes,
+          addedAt: Date.now(),
+          lastPracticedAt: null,
+          practiceCount: 0,
+        }
+        set((state) => ({ songLog: [...state.songLog, entry] }))
+        return entry
+      },
+
+      updateSongLog: (id, changes) =>
+        set((state) => ({
+          songLog: state.songLog.map((s) => (s.id === id ? { ...s, ...changes } : s)),
+        })),
+
+      removeSongLog: (id) =>
+        set((state) => ({ songLog: state.songLog.filter((s) => s.id !== id) })),
+
+      markSongPracticed: (id) =>
+        set((state) => ({
+          songLog: state.songLog.map((s) =>
+            s.id === id
+              ? { ...s, lastPracticedAt: Date.now(), practiceCount: s.practiceCount + 1 }
+              : s
+          ),
         })),
 
       // Coach chat — kept in store so it survives tab switches
@@ -199,11 +238,13 @@ const useStore = create(
         currentSession: state.currentSession,
         exerciseHistory: state.exerciseHistory,
         savedRoutines: state.savedRoutines,
+        songLog: state.songLog,
         spotify: {
           connected: state.spotify.connected,
           clientId: state.spotify.clientId,
           topGenres: state.spotify.topGenres,
           topArtists: state.spotify.topArtists,
+          topTracks: state.spotify.topTracks,
           displayName: state.spotify.displayName,
         },
       }),

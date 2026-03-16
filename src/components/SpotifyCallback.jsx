@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { exchangeCode, fetchTopArtists, fetchProfile, extractOurGenres } from '../spotify.js'
+import { exchangeCode, fetchTopArtists, fetchTopTracks, fetchProfile, extractOurGenres } from '../spotify.js'
 import useStore from '../store/index.js'
 
 export default function SpotifyCallback() {
@@ -43,9 +43,10 @@ export default function SpotifyCallback() {
         setStatus('Exchanging authorization code…')
         const tokenData = await exchangeCode(code, state)
 
-        setStatus('Fetching your top artists…')
-        const [artists, profile] = await Promise.all([
+        setStatus('Fetching your top artists and tracks…')
+        const [artists, tracks, profile] = await Promise.all([
           fetchTopArtists(tokenData.access_token),
+          fetchTopTracks(tokenData.access_token),
           fetchProfile(tokenData.access_token),
         ])
 
@@ -59,6 +60,7 @@ export default function SpotifyCallback() {
           displayName: profile.display_name || profile.id,
           topGenres: ourGenres,
           topArtists: topArtistNames,
+          topTracks: tracks,
         })
 
         clearTimeout(timeout)

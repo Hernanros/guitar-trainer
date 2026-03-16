@@ -296,19 +296,27 @@ export const GENRE_ICONS = {
 }
 
 /**
- * Given a set of technique names, return scored and sorted song suggestions.
- * Songs with more matching techniques score higher.
+ * Return scored song suggestions.
+ * - techniques: required, filters to relevant exercises
+ * - preferredGenres: optional, from Spotify — boosts songs in matching genres
  */
-export function getSuggestedSongs(techniques, limit = 6) {
+export function getSuggestedSongs(techniques, preferredGenres = [], limit = 6) {
   if (!techniques.length) return []
   const techSet = new Set(techniques)
+  const genreSet = new Set(preferredGenres)
 
   return SONG_LIBRARY
-    .map((song) => ({
-      ...song,
-      matchCount: song.techniques.filter((t) => techSet.has(t)).length,
-    }))
+    .map((song) => {
+      const techScore = song.techniques.filter((t) => techSet.has(t)).length
+      const genreBoost = genreSet.size > 0 && genreSet.has(song.genre) ? 1.5 : 0
+      return {
+        ...song,
+        matchCount: techScore,
+        score: techScore + genreBoost,
+        spotifyMatch: genreSet.size > 0 && genreSet.has(song.genre),
+      }
+    })
     .filter((s) => s.matchCount > 0)
-    .sort((a, b) => b.matchCount - a.matchCount || a.difficulty.localeCompare(b.difficulty))
+    .sort((a, b) => b.score - a.score || a.difficulty.localeCompare(b.difficulty))
     .slice(0, limit)
 }

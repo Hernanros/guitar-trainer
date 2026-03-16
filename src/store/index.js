@@ -105,6 +105,46 @@ const useStore = create(
         })
       },
 
+      // Spotify integration
+      spotify: {
+        connected: false,
+        clientId: '',
+        displayName: null,
+        accessToken: null,
+        expiresAt: null,
+        topGenres: [],    // our genre tags: ['metal', 'rock', ...]
+        topArtists: [],   // display names of top 5 artists
+      },
+
+      setSpotifyClientId: (clientId) =>
+        set((state) => ({ spotify: { ...state.spotify, clientId } })),
+
+      setSpotifyConnected: ({ accessToken, expiresAt, displayName, topGenres, topArtists }) =>
+        set((state) => ({
+          spotify: {
+            ...state.spotify,
+            connected: true,
+            accessToken,
+            expiresAt,
+            displayName,
+            topGenres,
+            topArtists,
+          },
+        })),
+
+      disconnectSpotify: () =>
+        set((state) => ({
+          spotify: {
+            ...state.spotify,
+            connected: false,
+            accessToken: null,
+            expiresAt: null,
+            displayName: null,
+            topGenres: [],
+            topArtists: [],
+          },
+        })),
+
       // Coach chat — kept in store so it survives tab switches
       // displayMessages: what the user sees [{role, content: string}]
       // apiMessages: full Anthropic history including tool_use / tool_result turns
@@ -159,6 +199,12 @@ const useStore = create(
         currentSession: state.currentSession,
         exerciseHistory: state.exerciseHistory,
         savedRoutines: state.savedRoutines,
+        spotify: {
+          clientId: state.spotify.clientId,
+          topGenres: state.spotify.topGenres,
+          topArtists: state.spotify.topArtists,
+          displayName: state.spotify.displayName,
+        },
       }),
     }
   )

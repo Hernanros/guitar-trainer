@@ -4,7 +4,10 @@
       "Bash(curl:*)",
       "Bash(npm run:*)",
       "Bash(gh auth:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo:*)",
+      "Bash(git add:*)"
     ]
   }
 }

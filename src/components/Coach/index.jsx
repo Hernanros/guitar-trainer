@@ -1,0 +1,261 @@
+import React, { useState, useRef, useEffect } from 'react'
+import useStore from '../../store/index.js'
+
+const SUGGESTED_PROMPTS = [
+  'What should I practice to improve my speed?',
+  'Create a chromatic legato exercise for me',
+  'How do I fix tension in my picking hand?',
+  'Suggest a 30-minute practice plan for today',
+]
+
+function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
+  const libraryList = exerciseLibrary
+    .map((e) => `- ${e.name} (${e.technique}, target: ${e.targetBpm} BPM)`)
+    .join('\n')
+
+  const sessionList =
+    currentSession.length > 0
+      ? currentSession
+          .map((s) => {
+            const ex = exerciseLibrary.find((e) => e.id === s.exerciseId)
+            return ex ? `- ${ex.name} at ${s.sessionBpm} BPM` : null
+          })
+          .filter(Boolean)
+          .join('\n')
+      : 'No exercises in current session.'
+
+  const historyLines = Object.entries(exerciseHistory)
+    .map(([id, h]) => {
+      const ex = exerciseLibrary.find((e) => e.id === id)
+      return ex ? `- ${ex.name}: last ${h.lastBpm} BPM, ${h.totalSessions} sessions` : null
+    })
+    .filter(Boolean)
+    .join('\n')
+
+  return `You are an expert guitar coach. Be concise and practical.
+
+Student's exercise library:
+${libraryList}
+
+Current session:
+${sessionList}
+
+Practice history:
+${historyLines || 'No history yet.'}
+
+IMPORTANT: When the student asks you to create or add a new exercise, you MUST call the add_exercise_to_library tool. Do not describe the exercise in text — call the tool directly.`
+}
+
+function renderText(text) {
+  if (!text || typeof text !== 'string') return null
+  return text.split('\n').map((line, i, arr) => {
+    const html = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    return (
+      <span key={i}>
+        <span dangerouslySetInnerHTML={{ __html: html }} />
+        {i < arr.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
+export default function Coach() {
+  const {
+    exerciseLibrary,
+    currentSession,
+    exerciseHistory,
+    addExerciseToLibrary,
+    coachDisplayMessages,
+    coachApiMessages,
+    appendCoachMessage,
+    setCoachApiMessages,
+    clearCoachMessages,
+  } = useStore()
+
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [coachDisplayMessages, loading])
+
+  const sendMessage = async (content) => {
+    if (!content.trim() || loading) return
+
+    const userMsg = { role: 'user', content }
+    appendCoachMessage(userMsg)
+    // Grab the latest api messages from store (not stale closure)
+    const latestApiMessages = [...useStore.getState().coachApiMessages, userMsg]
+    setCoachApiMessages(latestApiMessages)
+    setInput('')
+    setLoading(true)
+
+    try {
+      let apiMessages = latestApiMessages
+      const MAX_ITERATIONS = 6
+
+      for (let i = 0; i < MAX_ITERATIONS; i++) {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: apiMessages,
+            system: buildSystemPrompt(
+              useStore.getState().exerciseLibrary,
+              useStore.getState().currentSession,
+              useStore.getState().exerciseHistory,
+            ),
+          }),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          throw new Error(err.error || `Server error ${res.status}`)
+        }
+
+        const data = await res.json()
+        console.log('[Coach] stop_reason:', data.stop_reason, '| blocks:', data.content?.map(b => b.type))
+
+        if (data.stop_reason === 'tool_use') {
+          const toolUseBlocks = data.content.filter((b) => b.type === 'tool_use')
+          const toolResults = []
+
+          for (const toolBlock of toolUseBlocks) {
+            if (toolBlock.name === 'add_exercise_to_library') {
+              console.log('[Coach] Executing add_exercise_to_library:', toolBlock.input?.name)
+              const newExercise = addExerciseToLibrary(toolBlock.input)
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: `Successfully added exercise "${newExercise.name}" (id: ${newExercise.id}) to the library.`,
+              })
+            } else {
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: 'Tool not available.',
+                is_error: true,
+              })
+            }
+          }
+
+          apiMessages = [
+            ...apiMessages,
+            { role: 'assistant', content: data.content },
+            { role: 'user', content: toolResults },
+          ]
+          // continue loop to get the model's follow-up text
+
+        } else {
+          // end_turn, max_tokens, or stop_sequence
+          const textBlock = data.content?.find((b) => b.type === 'text')
+          const responseText = textBlock?.text?.trim() || '(No response — try rephrasing your question.)'
+          const assistantMsg = { role: 'assistant', content: responseText }
+          appendCoachMessage(assistantMsg)
+          apiMessages = [...apiMessages, assistantMsg]
+          setCoachApiMessages(apiMessages)
+          break
+        }
+
+        // Fallback if we exhausted iterations without end_turn
+        if (i === MAX_ITERATIONS - 1) {
+          appendCoachMessage({ role: 'assistant', content: 'Done. Check your exercise library for any new exercises that were added.' })
+          setCoachApiMessages(apiMessages)
+        }
+      }
+    } catch (err) {
+      console.error('[Coach] Error:', err)
+      appendCoachMessage({ role: 'assistant', content: `Error: ${err.message}` })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-10rem)]">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
+        {coachDisplayMessages.length === 0 ? (
+          <div className="space-y-4">
+            <div className="text-center py-8">
+              <p className="text-4xl mb-3">🤖</p>
+              <h2 className="text-xl font-bold text-gray-100 mb-1">AI Guitar Coach</h2>
+              <p className="text-gray-400 text-sm">Powered by Claude. Ask anything about your practice.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => sendMessage(prompt)}
+                  disabled={loading}
+                  className="card text-left text-sm text-gray-300 hover:border-orange-700 hover:text-gray-100 transition-colors"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-end mb-1">
+              <button
+                onClick={clearCoachMessages}
+                className="text-xs text-gray-600 hover:text-gray-400"
+              >
+                Clear chat
+              </button>
+            </div>
+            {coachDisplayMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`
+                    max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+                    ${msg.role === 'user'
+                      ? 'bg-orange-600 text-white rounded-tr-sm'
+                      : 'bg-gray-800 text-gray-100 rounded-tl-sm'
+                    }
+                  `}
+                >
+                  {msg.role === 'assistant' ? renderText(msg.content) : msg.content}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
+              <span className="ml-1">Coach is thinking…</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
+          placeholder="Ask your coach anything…"
+          disabled={loading}
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 disabled:opacity-50"
+        />
+        <button
+          onClick={() => sendMessage(input)}
+          disabled={loading || !input.trim()}
+          className="btn-primary px-5"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  )
+}

@@ -101,7 +101,7 @@ async function spotifyGet(path, token) {
 
 export async function fetchTopArtists(token) {
   const data = await spotifyGet('/me/top/artists?limit=20&time_range=medium_term', token)
-  return data.items // array of artist objects with .name and .genres[]
+  return data.items ?? [] // array of artist objects with .name and .genres[]
 }
 
 export async function fetchProfile(token) {
@@ -124,6 +124,7 @@ const GENRE_KEYWORDS = {
 export function extractOurGenres(spotifyGenres) {
   const counts = {}
   for (const raw of spotifyGenres) {
+    if (!raw || typeof raw !== 'string') continue
     const g = raw.toLowerCase()
     for (const [ours, keywords] of Object.entries(GENRE_KEYWORDS)) {
       if (keywords.some((kw) => g.includes(kw))) {

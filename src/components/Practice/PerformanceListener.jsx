@@ -34,7 +34,11 @@ function VolumeBar({ volume }) {
 }
 
 export default function PerformanceListener({ analyzer, exercise, isMetronomePlaying }) {
-  const { isListening, volume, detectedNote, sessionStats, start, stop } = analyzer
+  const {
+    isListening, volume, detectedNote, sessionStats,
+    audioDevices, selectedDeviceId, setSelectedDeviceId,
+    start, stop,
+  } = analyzer
   const { setView, appendCoachMessage, setCoachApiMessages, coachApiMessages } = useStore()
   const [error, setError] = useState(null)
   const [stopped, setStopped] = useState(false)
@@ -97,6 +101,22 @@ Based on these stats, what should I focus on to improve?`
       </div>
 
       {error && <p className="text-xs text-red-400">{error}</p>}
+
+      {/* Audio device selector */}
+      {!isListening && audioDevices.length > 1 && (
+        <select
+          value={selectedDeviceId}
+          onChange={(e) => setSelectedDeviceId(e.target.value)}
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-orange-500"
+        >
+          <option value="">Default microphone</option>
+          {audioDevices.map((d) => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Input ${d.deviceId.slice(0, 8)}`}
+            </option>
+          ))}
+        </select>
+      )}
 
       {!isListening && !stopped && !error && (
         <p className="text-xs text-gray-500">

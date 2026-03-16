@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const ONSET_THRESHOLD = 0.015   // RMS energy to count as a note onset
@@ -53,10 +53,30 @@ function detectPitch(buffer, sampleRate) {
 
 export function useAudioAnalyzer() {
   const [isListening, setIsListening] = useState(false)
-  const [volume, setVolume] = useState(0)          // 0–100
+  const [volume, setVolume] = useState(0)
   const [detectedNote, setDetectedNote] = useState(null)
   const [timingScore, setTimingScore] = useState(null)
   const [sessionStats, setSessionStats] = useState(null)
+  const [audioDevices, setAudioDevices] = useState([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState('')
+
+  // Load available audio input devices
+  useEffect(() => {
+    async function loadDevices() {
+      try {
+        // Request permission first so device labels are visible
+        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop()))
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const inputs = devices.filter((d) => d.kind === 'audioinput')
+        setAudioDevices(inputs)
+      } catch {
+        // Permission not granted yet — devices will load when user clicks Listen
+      }
+    }
+    loadDevices()
+    navigator.mediaDevices.addEventListener('devicechange', loadDevices)
+    return () => navigator.mediaDevices.removeEventListener('devicechange', loadDevices)
+  }, [])
 
   const audioCtxRef = useRef(null)
   const streamRef = useRef(null)
@@ -75,7 +95,14 @@ export function useAudioAnalyzer() {
 
   const start = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      const audioConstraints = selectedDeviceId
+        ? { deviceId: { exact: selectedDeviceId } }
+        : true
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false })
+
+      // Refresh device list now that we have permission (labels become visible)
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      setAudioDevices(devices.filter((d) => d.kind === 'audioinput'))
       streamRef.current = stream
 
       const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -174,6 +201,9 @@ export function useAudioAnalyzer() {
     detectedNote,
     timingScore,
     sessionStats,
+    audioDevices,
+    selectedDeviceId,
+    setSelectedDeviceId,
     recordBeat,
     start,
     stop,

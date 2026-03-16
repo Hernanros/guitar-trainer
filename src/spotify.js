@@ -109,11 +109,21 @@ export async function fetchProfile(token) {
 }
 
 export async function fetchTopTracks(token) {
-  const data = await spotifyGet('/me/top/tracks?limit=15&time_range=medium_term', token)
-  return (data.items ?? []).map((t) => ({
-    title: t.name,
-    artist: t.artists.map((a) => a.name).join(', '),
-  }))
+  const ranges = ['short_term', 'medium_term', 'long_term']
+  const results = await Promise.all(
+    ranges.map((range) => spotifyGet(`/me/top/tracks?limit=50&time_range=${range}`, token))
+  )
+  const seen = new Set()
+  const tracks = []
+  for (const data of results) {
+    for (const t of (data.items ?? [])) {
+      if (!seen.has(t.id)) {
+        seen.add(t.id)
+        tracks.push({ title: t.name, artist: t.artists.map((a) => a.name).join(', ') })
+      }
+    }
+  }
+  return tracks // up to 150 unique tracks across all time ranges
 }
 
 // ── Genre mapping ─────────────────────────────────────────────────────────────

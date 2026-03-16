@@ -1,8 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { getSuggestedSongs, DIFFICULTY_COLORS, GENRE_ICONS } from '../../data/songs.js'
 import { TECHNIQUE_COLORS } from '../../data/exercises.js'
 import { startAuth } from '../../spotify.js'
 import useStore from '../../store/index.js'
+
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 export default function SongSuggestions({ techniques }) {
   const { spotify, setSpotifyClientId, disconnectSpotify } = useStore()
@@ -10,6 +19,11 @@ export default function SongSuggestions({ techniques }) {
   const [clientIdInput, setClientIdInput] = useState(spotify.clientId || '')
   const [connecting, setConnecting] = useState(false)
   const [inputError, setInputError] = useState('')
+  const [trackSeed, setTrackSeed] = useState(0)
+
+  const reshuffleTracks = useCallback(() => setTrackSeed((s) => s + 1), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const visibleTracks = useMemo(() => shuffle(spotify.topTracks || []).slice(0, 8), [trackSeed, spotify.topTracks?.length])
 
   const preferredGenres = spotify.connected ? spotify.topGenres : []
   const songs = getSuggestedSongs(techniques, preferredGenres, 8)
@@ -141,11 +155,20 @@ export default function SongSuggestions({ techniques }) {
           {/* Top tracks from Spotify */}
           {spotify.connected && spotify.topTracks?.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-green-400 uppercase tracking-wide">
-                ♫ Your top songs to learn
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-green-400 uppercase tracking-wide">
+                  ♫ Your top songs to learn
+                  <span className="text-gray-600 font-normal normal-case ml-1">({spotify.topTracks.length} total)</span>
+                </p>
+                <button
+                  onClick={reshuffleTracks}
+                  className="text-xs text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-500 rounded px-2 py-0.5 transition-colors"
+                >
+                  ↺ Reshuffle
+                </button>
+              </div>
               <div className="space-y-2">
-                {spotify.topTracks.slice(0, 8).map((track, i) => (
+                {visibleTracks.map((track, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 bg-gray-800 rounded-lg px-3 py-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-100 truncate font-medium">{track.title}</p>

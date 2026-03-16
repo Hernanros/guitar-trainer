@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import useStore from '../../store/index.js'
 import { SONG_LIBRARY } from '../../data/songs.js'
 import { TECHNIQUE_COLORS } from '../../data/exercises.js'
@@ -240,8 +240,19 @@ function SongCard({ song }) {
   )
 }
 
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 function NextSuggestions() {
   const { songLog, exerciseHistory, exerciseLibrary, spotify, addToSongLog } = useStore()
+  const [trackSeed, setTrackSeed] = useState(0)
+  const reshuffle = useCallback(() => setTrackSeed((s) => s + 1), [])
   const loggedTitles = new Set(songLog.map((s) => s.title.toLowerCase()))
 
   // Which techniques has the user been actively practicing?
@@ -264,20 +275,34 @@ function NextSuggestions() {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5)
 
-  // Unlogged Spotify top tracks
-  const spotifyUnlogged = (spotify.topTracks || [])
+  // Unlogged Spotify top tracks — shuffled pool
+  const allSpotifyUnlogged = (spotify.topTracks || [])
     .filter((t) => !loggedTitles.has(t.title.toLowerCase()))
-    .slice(0, 4)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const spotifyUnlogged = useMemo(() => shuffle(allSpotifyUnlogged).slice(0, 5), [trackSeed, allSpotifyUnlogged.length])
 
   if (suggestions.length === 0 && spotifyUnlogged.length === 0) return null
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-gray-300">What to learn next</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-300">What to learn next</h3>
+        {allSpotifyUnlogged.length > 0 && (
+          <button
+            onClick={reshuffle}
+            className="text-xs text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-500 rounded px-2 py-0.5 transition-colors"
+          >
+            ↺ Reshuffle
+          </button>
+        )}
+      </div>
 
       {spotifyUnlogged.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-green-400 font-medium uppercase tracking-wide">♫ From your Spotify</p>
+          <p className="text-xs text-green-400 font-medium uppercase tracking-wide">
+            ♫ From your Spotify
+            <span className="text-gray-600 font-normal normal-case ml-1">({allSpotifyUnlogged.length} unlearned)</span>
+          </p>
           {spotifyUnlogged.map((track, i) => (
             <div key={i} className="flex items-center justify-between gap-2 bg-gray-800 rounded-lg px-3 py-2">
               <div className="flex-1 min-w-0">

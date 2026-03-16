@@ -200,6 +200,7 @@ const useStore = create(
         exerciseHistory: state.exerciseHistory,
         savedRoutines: state.savedRoutines,
         spotify: {
+          connected: state.spotify.connected,
           clientId: state.spotify.clientId,
           topGenres: state.spotify.topGenres,
           topArtists: state.spotify.topArtists,

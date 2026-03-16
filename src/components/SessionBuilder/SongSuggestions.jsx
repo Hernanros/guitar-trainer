@@ -12,7 +12,7 @@ export default function SongSuggestions({ techniques }) {
   const [inputError, setInputError] = useState('')
 
   const preferredGenres = spotify.connected ? spotify.topGenres : []
-  const songs = getSuggestedSongs(techniques, preferredGenres, 6)
+  const songs = getSuggestedSongs(techniques, preferredGenres, 8)
 
   const isTokenExpired = spotify.expiresAt && Date.now() > spotify.expiresAt
 
@@ -151,46 +151,63 @@ export default function SongSuggestions({ techniques }) {
           {/* Song list */}
           {songs.length === 0 ? (
             <p className="text-xs text-gray-500 text-center py-2">Add exercises to see song suggestions</p>
-          ) : (
-            <div className="space-y-3">
-              {songs.map((song) => (
-                <div
-                  key={song.id}
-                  className={`bg-gray-800 rounded-lg p-3 space-y-1.5 ${song.spotifyMatch ? 'ring-1 ring-green-800' : ''}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium text-gray-100">{song.title}</span>
-                        <span className="text-xs text-gray-500">— {song.artist}</span>
-                        {song.spotifyMatch && (
-                          <span className="badge bg-green-900 text-green-400 text-xs">♫ your taste</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className={`badge ${DIFFICULTY_COLORS[song.difficulty]}`}>{song.difficulty}</span>
-                        <span className="text-xs text-gray-500">{GENRE_ICONS[song.genre] || '🎵'} {song.genre}</span>
-                      </div>
+          ) : (() => {
+            const forYou = songs.filter((s) => s.spotifyMatch)
+            const others = songs.filter((s) => !s.spotifyMatch)
+            const SongCard = (song) => (
+              <div
+                key={song.id}
+                className={`bg-gray-800 rounded-lg p-3 space-y-1.5 ${song.spotifyMatch ? 'ring-1 ring-green-700' : ''}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-medium text-gray-100">{song.title}</span>
+                      <span className="text-xs text-gray-500">— {song.artist}</span>
                     </div>
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist + ' guitar lesson')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors"
-                    >
-                      ▶ Lesson
-                    </a>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`badge ${DIFFICULTY_COLORS[song.difficulty]}`}>{song.difficulty}</span>
+                      <span className="text-xs text-gray-500">{GENRE_ICONS[song.genre] || '🎵'} {song.genre}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-400 leading-relaxed">{song.description}</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {song.techniques.map((t) => (
-                      <span key={t} className={`badge text-xs ${TECHNIQUE_COLORS[t] || 'bg-gray-700 text-gray-300'}`}>{t}</span>
-                    ))}
-                  </div>
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist + ' guitar lesson')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors"
+                  >
+                    ▶ Lesson
+                  </a>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-xs text-gray-400 leading-relaxed">{song.description}</p>
+                <div className="flex gap-1 flex-wrap">
+                  {song.techniques.map((t) => (
+                    <span key={t} className={`badge text-xs ${TECHNIQUE_COLORS[t] || 'bg-gray-700 text-gray-300'}`}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            )
+            return (
+              <div className="space-y-4">
+                {forYou.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-green-400 uppercase tracking-wide">
+                      ♫ Based on your Spotify taste
+                    </p>
+                    <div className="space-y-3">{forYou.map(SongCard)}</div>
+                  </div>
+                )}
+                {others.length > 0 && (
+                  <div className="space-y-2">
+                    {forYou.length > 0 && (
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Other suggestions</p>
+                    )}
+                    <div className="space-y-3">{others.map(SongCard)}</div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </>
       )}
     </div>

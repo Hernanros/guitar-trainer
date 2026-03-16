@@ -112,13 +112,13 @@ export async function fetchProfile(token) {
 // Maps Spotify's freeform genre strings to our song library genre tags
 
 const GENRE_KEYWORDS = {
-  metal:     ['metal', 'thrash', 'death', 'doom', 'black metal', 'power metal', 'heavy'],
-  rock:      ['rock', 'punk', 'grunge', 'alternative', 'indie rock', 'hard rock', 'classic rock'],
-  jazz:      ['jazz', 'bebop', 'bossa', 'fusion', 'swing', 'blues'],
-  folk:      ['folk', 'country', 'acoustic', 'singer-songwriter', 'americana', 'bluegrass'],
-  classical: ['classical', 'baroque', 'orchestral', 'neoclassical', 'neo-classical', 'chamber'],
-  funk:      ['funk', 'soul', 'r&b', 'groove', 'disco', 'motown'],
-  pop:       ['pop', 'dance', 'electropop', 'synth'],
+  metal:     ['metal', 'thrash', 'death', 'doom', 'black metal', 'power metal', 'heavy', 'hardcore', 'metalcore', 'deathcore', 'sludge', 'stoner', 'progressive metal', 'djent', 'nu metal', 'speed metal'],
+  rock:      ['rock', 'punk', 'grunge', 'alternative', 'indie rock', 'hard rock', 'classic rock', 'post-rock', 'psychedelic', 'garage', 'shoegaze', 'emo', 'post-punk', 'new wave', 'britpop', 'southern rock', 'blues rock'],
+  jazz:      ['jazz', 'bebop', 'bossa', 'fusion', 'swing', 'blues', 'latin jazz', 'smooth jazz', 'contemporary jazz', 'big band', 'cool jazz', 'free jazz'],
+  folk:      ['folk', 'country', 'acoustic', 'singer-songwriter', 'americana', 'bluegrass', 'celtic', 'traditional', 'indie folk', 'folk rock', 'neo-folk', 'world music'],
+  classical: ['classical', 'baroque', 'orchestral', 'neoclassical', 'neo-classical', 'chamber', 'opera', 'symphonic', 'minimalist', 'contemporary classical', 'piano'],
+  funk:      ['funk', 'soul', 'r&b', 'groove', 'disco', 'motown', 'neo soul', 'contemporary r&b', 'rnb', 'afrobeat', 'new jack swing', 'urban', 'rhythm and blues'],
+  pop:       ['pop', 'dance', 'electropop', 'synth', 'k-pop', 'indie pop', 'dream pop', 'art pop', 'bubblegum', 'teen pop', 'adult contemporary', 'easy listening'],
 }
 
 export function extractOurGenres(spotifyGenres) {

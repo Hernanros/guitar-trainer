@@ -64,6 +64,7 @@ export default function SpotifyCallback() {
         clearTimeout(timeout)
         window.location.href = '/'
       } catch (err) {
+        console.error('[SpotifyCallback] Error:', err)
         setError(err.message)
       }
     }

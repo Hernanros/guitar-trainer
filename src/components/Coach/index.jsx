@@ -1,28 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react'
 import useStore from '../../store/index.js'
+import { TECHNIQUE_COLORS } from '../../data/exercises.js'
 
 const SUGGESTED_PROMPTS = [
+  'Create a fingerpicking exercise in 6/8 for intermediate players',
+  'Make a funk rhythm exercise inspired by James Brown',
+  'Write a legato exercise targeting the pinky finger',
+  'Create a blues phrasing exercise with call and response',
   'What should I practice to improve my speed?',
-  'Create a chromatic legato exercise for me',
   'How do I fix tension in my picking hand?',
-  'Suggest a 30-minute practice plan for today',
 ]
 
 function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
   const libraryList = exerciseLibrary
-    .map((e) => `- ${e.name} (${e.technique}, target: ${e.targetBpm} BPM)`)
+    .map((e) => `- ${e.name} (${e.technique}, ${e.startBpm}→${e.targetBpm} BPM)`)
     .join('\n')
-
-  const sessionList =
-    currentSession.length > 0
-      ? currentSession
-          .map((s) => {
-            const ex = exerciseLibrary.find((e) => e.id === s.exerciseId)
-            return ex ? `- ${ex.name} at ${s.sessionBpm} BPM` : null
-          })
-          .filter(Boolean)
-          .join('\n')
-      : 'No exercises in current session.'
 
   const historyLines = Object.entries(exerciseHistory)
     .map(([id, h]) => {
@@ -32,18 +24,21 @@ function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
     .filter(Boolean)
     .join('\n')
 
-  return `You are an expert guitar coach. Be concise and practical.
+  return `You are an expert guitar coach and curriculum designer.
 
-Student's exercise library:
-${libraryList}
-
-Current session:
-${sessionList}
+Student's exercise library (${exerciseLibrary.length} exercises):
+${libraryList || 'Empty'}
 
 Practice history:
 ${historyLines || 'No history yet.'}
 
-IMPORTANT: When the student asks you to create or add a new exercise, you MUST call the add_exercise_to_library tool. Do not describe the exercise in text — call the tool directly.`
+## Tool use rules — follow these exactly:
+- When the student asks you to CREATE, WRITE, ADD, or MAKE an exercise, call add_exercise_to_library immediately. Do NOT describe the exercise in text first — call the tool.
+- You may call the tool multiple times in one turn if the student asks for several exercises.
+- After calling the tool, write a short confirmation message (1-2 sentences max).
+- For all other questions, respond normally without calling the tool.
+
+Valid technique values: scales, arpeggios, chords, legato, picking, fingerpicking, rhythm, theory, licks, slide, phrasing`
 }
 
 function renderText(text) {
@@ -59,12 +54,39 @@ function renderText(text) {
   })
 }
 
+function ExerciseAddedCard({ exercise, onAddToSession }) {
+  const techniqueColor = TECHNIQUE_COLORS[exercise.technique] || 'bg-gray-700 text-gray-300'
+  return (
+    <div className="border border-green-700 bg-green-950/40 rounded-xl p-4 space-y-2 w-full max-w-sm">
+      <div className="flex items-center gap-2 text-green-400 text-xs font-semibold uppercase tracking-wide">
+        <span>✓</span>
+        <span>Added to library</span>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-100">{exercise.name}</p>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <span className={`badge ${techniqueColor}`}>{exercise.technique}</span>
+          <span className="text-xs text-gray-500">{exercise.startBpm} → {exercise.targetBpm} BPM · {exercise.timeSignature}</span>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 leading-relaxed">{exercise.description}</p>
+      <button
+        onClick={() => onAddToSession(exercise)}
+        className="text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors"
+      >
+        + Add to session
+      </button>
+    </div>
+  )
+}
+
 export default function Coach() {
   const {
     exerciseLibrary,
     currentSession,
     exerciseHistory,
     addExerciseToLibrary,
+    addToSession,
     coachDisplayMessages,
     coachApiMessages,
     appendCoachMessage,
@@ -85,7 +107,6 @@ export default function Coach() {
 
     const userMsg = { role: 'user', content }
     appendCoachMessage(userMsg)
-    // Grab the latest api messages from store (not stale closure)
     const latestApiMessages = [...useStore.getState().coachApiMessages, userMsg]
     setCoachApiMessages(latestApiMessages)
     setInput('')
@@ -93,7 +114,7 @@ export default function Coach() {
 
     try {
       let apiMessages = latestApiMessages
-      const MAX_ITERATIONS = 6
+      const MAX_ITERATIONS = 8
 
       for (let i = 0; i < MAX_ITERATIONS; i++) {
         const res = await fetch('/api/chat', {
@@ -115,7 +136,6 @@ export default function Coach() {
         }
 
         const data = await res.json()
-        console.log('[Coach] stop_reason:', data.stop_reason, '| blocks:', data.content?.map(b => b.type))
 
         if (data.stop_reason === 'tool_use') {
           const toolUseBlocks = data.content.filter((b) => b.type === 'tool_use')
@@ -123,12 +143,13 @@ export default function Coach() {
 
           for (const toolBlock of toolUseBlocks) {
             if (toolBlock.name === 'add_exercise_to_library') {
-              console.log('[Coach] Executing add_exercise_to_library:', toolBlock.input?.name)
               const newExercise = addExerciseToLibrary(toolBlock.input)
+              // Show the exercise card inline in the chat immediately
+              appendCoachMessage({ role: 'exercise_added', exercise: newExercise })
               toolResults.push({
                 type: 'tool_result',
                 tool_use_id: toolBlock.id,
-                content: `Successfully added exercise "${newExercise.name}" (id: ${newExercise.id}) to the library.`,
+                content: `Exercise "${newExercise.name}" (id: ${newExercise.id}) added successfully.`,
               })
             } else {
               toolResults.push({
@@ -145,22 +166,20 @@ export default function Coach() {
             { role: 'assistant', content: data.content },
             { role: 'user', content: toolResults },
           ]
-          // continue loop to get the model's follow-up text
 
         } else {
-          // end_turn, max_tokens, or stop_sequence
           const textBlock = data.content?.find((b) => b.type === 'text')
-          const responseText = textBlock?.text?.trim() || '(No response — try rephrasing your question.)'
-          const assistantMsg = { role: 'assistant', content: responseText }
-          appendCoachMessage(assistantMsg)
-          apiMessages = [...apiMessages, assistantMsg]
+          const responseText = textBlock?.text?.trim()
+          if (responseText) {
+            const assistantMsg = { role: 'assistant', content: responseText }
+            appendCoachMessage(assistantMsg)
+            apiMessages = [...apiMessages, assistantMsg]
+          }
           setCoachApiMessages(apiMessages)
           break
         }
 
-        // Fallback if we exhausted iterations without end_turn
         if (i === MAX_ITERATIONS - 1) {
-          appendCoachMessage({ role: 'assistant', content: 'Done. Check your exercise library for any new exercises that were added.' })
           setCoachApiMessages(apiMessages)
         }
       }
@@ -180,7 +199,7 @@ export default function Coach() {
             <div className="text-center py-8">
               <p className="text-4xl mb-3">🤖</p>
               <h2 className="text-xl font-bold text-gray-100 mb-1">AI Guitar Coach</h2>
-              <p className="text-gray-400 text-sm">Powered by Claude. Ask anything about your practice.</p>
+              <p className="text-gray-400 text-sm">Ask a question or describe an exercise — I'll write it straight into your library.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {SUGGESTED_PROMPTS.map((prompt) => (
@@ -198,28 +217,38 @@ export default function Coach() {
         ) : (
           <>
             <div className="flex justify-end mb-1">
-              <button
-                onClick={clearCoachMessages}
-                className="text-xs text-gray-600 hover:text-gray-400"
-              >
+              <button onClick={clearCoachMessages} className="text-xs text-gray-600 hover:text-gray-400">
                 Clear chat
               </button>
             </div>
-            {coachDisplayMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`
-                    max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
-                    ${msg.role === 'user'
-                      ? 'bg-orange-600 text-white rounded-tr-sm'
-                      : 'bg-gray-800 text-gray-100 rounded-tl-sm'
-                    }
-                  `}
-                >
-                  {msg.role === 'assistant' ? renderText(msg.content) : msg.content}
+
+            {coachDisplayMessages.map((msg, i) => {
+              if (msg.role === 'exercise_added') {
+                return (
+                  <div key={i} className="flex justify-start">
+                    <ExerciseAddedCard
+                      exercise={msg.exercise}
+                      onAddToSession={(ex) => addToSession(ex)}
+                    />
+                  </div>
+                )
+              }
+              return (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`
+                      max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+                      ${msg.role === 'user'
+                        ? 'bg-orange-600 text-white rounded-tr-sm'
+                        : 'bg-gray-800 text-gray-100 rounded-tl-sm'
+                      }
+                    `}
+                  >
+                    {msg.role === 'assistant' ? renderText(msg.content) : msg.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </>
         )}
 
@@ -229,7 +258,7 @@ export default function Coach() {
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
-              <span className="ml-1">Coach is thinking…</span>
+              <span className="ml-1">Writing exercise…</span>
             </div>
           </div>
         )}
@@ -237,14 +266,13 @@ export default function Coach() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="flex gap-3">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
-          placeholder="Ask your coach anything…"
+          placeholder="Describe an exercise or ask anything…"
           disabled={loading}
           className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 disabled:opacity-50"
         />

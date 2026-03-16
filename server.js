@@ -26,7 +26,7 @@ const tools = [
         technique: {
           type: 'string',
           description:
-            'Technique category. One of: scales, arpeggios, chords, legato, picking, fingerpicking, rhythm, theory',
+            'Technique category. One of: scales, arpeggios, chords, legato, picking, fingerpicking, rhythm, theory, licks, slide, phrasing',
         },
         targetBpm: {
           type: 'number',
@@ -68,8 +68,8 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
       system: system || '',
       messages,
       tools,

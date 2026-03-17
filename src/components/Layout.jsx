@@ -13,6 +13,7 @@ const TABS = [
   { id: 'builder', label: 'Session Builder', icon: '🎵' },
   { id: 'practice', label: 'Practice', icon: '🎸' },
   { id: 'repertoire', label: 'Repertoire', icon: '🎼' },
+  { id: 'tabs', label: 'Tabs', icon: '📄' },
   { id: 'coach', label: 'AI Coach', icon: '🤖' },
 ]
 

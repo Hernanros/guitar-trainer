@@ -148,6 +148,32 @@ const useStore = create(
           },
         })),
 
+      // Tab library
+      tabLibrary: [],
+
+      addTab: (tab) => {
+        const entry = {
+          id: `tab-${Date.now()}`,
+          title: tab.title || 'Untitled',
+          artist: tab.artist || '',
+          content: tab.content,
+          capo: tab.capo ?? 0,
+          tuning: tab.tuning || 'Standard',
+          linkedSongId: tab.linkedSongId || null,
+          addedAt: Date.now(),
+        }
+        set((state) => ({ tabLibrary: [...state.tabLibrary, entry] }))
+        return entry
+      },
+
+      updateTab: (id, changes) =>
+        set((state) => ({
+          tabLibrary: state.tabLibrary.map((t) => (t.id === id ? { ...t, ...changes } : t)),
+        })),
+
+      removeTab: (id) =>
+        set((state) => ({ tabLibrary: state.tabLibrary.filter((t) => t.id !== id) })),
+
       // Song repertoire log
       songLog: [],
 
@@ -239,6 +265,7 @@ const useStore = create(
         exerciseHistory: state.exerciseHistory,
         savedRoutines: state.savedRoutines,
         songLog: state.songLog,
+        tabLibrary: state.tabLibrary,
         spotify: {
           connected: state.spotify.connected,
           clientId: state.spotify.clientId,

@@ -18,6 +18,7 @@ function detectLineType(line) {
 }
 
 export function parseTab(raw) {
+  if (!raw || typeof raw !== 'string') return { sections: [], capo: 0, tuning: 'Standard' }
   const lines = raw.replace(/\r\n/g, '\n').split('\n')
 
   // Extract metadata from top of file
@@ -68,6 +69,7 @@ export function parseTab(raw) {
 
 // Try to extract title/artist from the first few lines of a UG paste
 export function extractMeta(raw) {
+  if (!raw || typeof raw !== 'string') return { title: '', artist: '' }
   const lines = raw.split('\n').slice(0, 10).map((l) => l.trim()).filter(Boolean)
   let title = ''
   let artist = ''

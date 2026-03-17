@@ -198,7 +198,7 @@ function TabViewer({ tab, onClose }) {
           <span className="text-sm font-semibold text-gray-100 truncate">{tab.title}</span>
           {tab.artist && <span className="text-xs text-gray-500 ml-2">{tab.artist}</span>}
           {tab.capo > 0 && <span className="text-xs text-orange-400 ml-2">Capo {tab.capo}</span>}
-          {tab.tuning !== 'Standard' && <span className="text-xs text-gray-500 ml-2">{tab.tuning}</span>}
+          {tab.tuning && tab.tuning !== 'Standard' && <span className="text-xs text-gray-500 ml-2">{tab.tuning}</span>}
         </div>
 
         {/* Font size */}
@@ -312,7 +312,9 @@ export default function Tabs() {
   const [search, setSearch] = useState('')
 
   const filtered = tabLibrary.filter((t) =>
-    !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase())
+    !search ||
+    (t.title || '').toLowerCase().includes(search.toLowerCase()) ||
+    (t.artist || '').toLowerCase().includes(search.toLowerCase())
   )
 
   if (viewingTab) {
@@ -376,7 +378,7 @@ export default function Tabs() {
                         {tab.capo > 0 && (
                           <span className="badge bg-gray-700 text-gray-300 text-xs">Capo {tab.capo}</span>
                         )}
-                        {tab.tuning !== 'Standard' && (
+                        {tab.tuning && tab.tuning !== 'Standard' && (
                           <span className="badge bg-gray-700 text-gray-300 text-xs">{tab.tuning}</span>
                         )}
                         <span className="text-xs text-gray-600">

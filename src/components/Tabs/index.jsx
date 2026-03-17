@@ -2,6 +2,117 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import useStore from '../../store/index.js'
 import { parseTab, extractMeta } from './parseTab.js'
 
+// ── Edit Modal ────────────────────────────────────────────────────────────────
+
+function EditModal({ tab, onClose }) {
+  const { updateTab, songLog } = useStore()
+  const [title, setTitle] = useState(tab.title || '')
+  const [artist, setArtist] = useState(tab.artist || '')
+  const [capo, setCapo] = useState(tab.capo ?? 0)
+  const [tuning, setTuning] = useState(tab.tuning || 'Standard')
+  const [linkedSongId, setLinkedSongId] = useState(tab.linkedSongId || '')
+  const [repasteMode, setRepasteMode] = useState(false)
+  const [newContent, setNewContent] = useState(tab.content || '')
+  const [error, setError] = useState('')
+
+  const handleSave = () => {
+    if (!title.trim()) { setError('Title is required.'); return }
+    const changes = { title: title.trim(), artist: artist.trim(), capo, tuning, linkedSongId: linkedSongId || null }
+    if (repasteMode && newContent.trim()) changes.content = newContent.trim()
+    updateTab(tab.id, changes)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="card w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-100">Edit Tab</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xl leading-none">×</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="text-xs text-gray-400 mb-1 block">Title *</label>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); setError('') }}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs text-gray-400 mb-1 block">Artist</label>
+            <input
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Tuning</label>
+            <input
+              value={tuning}
+              onChange={(e) => setTuning(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Capo (fret)</label>
+            <input
+              type="number" min={0} max={12}
+              value={capo}
+              onChange={(e) => setCapo(Number(e.target.value))}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+        </div>
+
+        {songLog.length > 0 && (
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Linked Repertoire song</label>
+            <select
+              value={linkedSongId}
+              onChange={(e) => setLinkedSongId(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-orange-500"
+            >
+              <option value="">— not linked —</option>
+              {songLog.map((s) => (
+                <option key={s.id} value={s.id}>{s.title}{s.artist ? ` — ${s.artist}` : ''}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <button
+            onClick={() => setRepasteMode((v) => !v)}
+            className="text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
+          >
+            {repasteMode ? '↩ Cancel re-paste' : '↺ Replace tab content (re-paste)'}
+          </button>
+          {repasteMode && (
+            <textarea
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              rows={6}
+              placeholder="Paste new tab text here…"
+              className="mt-2 w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 font-mono resize-none"
+            />
+          )}
+        </div>
+
+        {error && <p className="text-xs text-red-400">{error}</p>}
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={handleSave} className="btn-primary flex-1">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Import Modal ──────────────────────────────────────────────────────────────
 
 function ImportModal({ onClose }) {
@@ -146,11 +257,13 @@ function ImportModal({ onClose }) {
 // ── Tab Viewer ────────────────────────────────────────────────────────────────
 
 function TabViewer({ tab, onClose }) {
-  const { updateTab, removeTab } = useStore()
+  const { removeTab } = useStore()
   const [fontSize, setFontSize] = useState(13)
   const [autoScroll, setAutoScroll] = useState(false)
   const [scrollSpeed, setScrollSpeed] = useState(1.5) // px per frame
   const [activeSection, setActiveSection] = useState(0)
+  const [showEdit, setShowEdit] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const scrollRef = useRef(null)
   const rafRef = useRef(null)
   const parsed = parseTab(tab.content)
@@ -183,11 +296,9 @@ function TabViewer({ tab, onClose }) {
     sectionRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const confirmDelete = () => {
-    if (window.confirm(`Delete "${tab.title}"?`)) { removeTab(tab.id); onClose() }
-  }
-
   return (
+    <>
+      {showEdit && <EditModal tab={tab} onClose={() => setShowEdit(false)} />}
     <div className="fixed inset-0 bg-gray-950 z-50 flex flex-col">
       {/* Toolbar */}
       <div className="shrink-0 border-b border-gray-800 bg-gray-900 px-4 py-2 flex items-center gap-3 flex-wrap">
@@ -228,7 +339,18 @@ function TabViewer({ tab, onClose }) {
           </button>
         </div>
 
-        <button onClick={confirmDelete} className="text-xs text-red-600 hover:text-red-400">Delete</button>
+        <button onClick={() => setShowEdit(true)} className="text-xs text-gray-400 hover:text-gray-100 border border-gray-700 hover:border-gray-500 rounded px-2 py-1 transition-colors">
+          Edit
+        </button>
+        {confirmingDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-red-400">Delete?</span>
+            <button onClick={() => { removeTab(tab.id); onClose() }} className="text-xs text-red-400 hover:text-red-300 font-semibold">Yes</button>
+            <button onClick={() => setConfirmingDelete(false)} className="text-xs text-gray-500 hover:text-gray-300">No</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmingDelete(true)} className="text-xs text-red-700 hover:text-red-400 transition-colors">Delete</button>
+        )}
       </div>
 
       {/* Section nav */}
@@ -300,15 +422,17 @@ function TabViewer({ tab, onClose }) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
 // ── Main Tabs View ─────────────────────────────────────────────────────────────
 
 export default function Tabs() {
-  const { tabLibrary, songLog } = useStore()
+  const { tabLibrary, songLog, removeTab } = useStore()
   const [showImport, setShowImport] = useState(false)
   const [viewingTab, setViewingTab] = useState(null)
+  const [editingTab, setEditingTab] = useState(null)
   const [search, setSearch] = useState('')
 
   const filtered = tabLibrary.filter((t) =>
@@ -325,6 +449,7 @@ export default function Tabs() {
   return (
     <>
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {editingTab && <EditModal tab={editingTab} onClose={() => setEditingTab(null)} />}
 
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
@@ -391,7 +516,21 @@ export default function Tabs() {
                         )}
                       </div>
                     </div>
-                    <span className="text-gray-600 group-hover:text-orange-400 transition-colors text-lg">→</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingTab(tab) }}
+                        className="text-xs text-gray-500 hover:text-gray-200 border border-gray-700 hover:border-gray-500 rounded px-2 py-1 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeTab(tab.id) }}
+                        className="text-xs text-red-700 hover:text-red-400 border border-red-900 hover:border-red-700 rounded px-2 py-1 transition-colors"
+                      >
+                        Delete
+                      </button>
+                      <span className="text-gray-600 group-hover:text-orange-400 transition-colors text-lg">→</span>
+                    </div>
                   </div>
                 </div>
               )

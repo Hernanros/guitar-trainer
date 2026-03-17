@@ -148,6 +148,58 @@ const useStore = create(
           },
         })),
 
+      // Practice song lists (curated/AI-suggested, categorized by goal)
+      practiceSongList: [],
+
+      addPracticeSong: (song) => {
+        const entry = {
+          id: `psl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          title: song.title || 'Untitled',
+          artist: song.artist || '',
+          category: song.category || 'General',
+          tags: song.tags || [],
+          skills: song.skills || [],
+          difficulty: song.difficulty || 'intermediate',
+          notes: song.notes || '',
+          addedAt: Date.now(),
+          addedBy: song.addedBy || 'user',
+        }
+        set((state) => ({ practiceSongList: [...state.practiceSongList, entry] }))
+        return entry
+      },
+
+      addPracticeSongs: ({ category, songs }) => {
+        const entries = songs.map((song) => ({
+          id: `psl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          title: song.title || 'Untitled',
+          artist: song.artist || '',
+          category: category || 'General',
+          tags: song.tags || [],
+          skills: song.skills || [],
+          difficulty: song.difficulty || 'intermediate',
+          notes: song.notes || '',
+          addedAt: Date.now(),
+          addedBy: 'coach',
+        }))
+        set((state) => ({ practiceSongList: [...state.practiceSongList, ...entries] }))
+        return entries
+      },
+
+      updatePracticeSong: (id, changes) =>
+        set((state) => ({
+          practiceSongList: state.practiceSongList.map((s) => (s.id === id ? { ...s, ...changes } : s)),
+        })),
+
+      removePracticeSong: (id) =>
+        set((state) => ({ practiceSongList: state.practiceSongList.filter((s) => s.id !== id) })),
+
+      moveSongToRepertoire: (id) => {
+        const song = get().practiceSongList.find((s) => s.id === id)
+        if (!song) return
+        get().addToSongLog({ title: song.title, artist: song.artist, status: 'want', techniques: song.skills, notes: song.notes })
+        get().removePracticeSong(id)
+      },
+
       // Tab library
       tabLibrary: [],
 
@@ -265,6 +317,7 @@ const useStore = create(
         exerciseHistory: state.exerciseHistory,
         savedRoutines: state.savedRoutines,
         songLog: state.songLog,
+        practiceSongList: state.practiceSongList,
         tabLibrary: state.tabLibrary,
         spotify: {
           connected: state.spotify.connected,

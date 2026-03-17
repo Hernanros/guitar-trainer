@@ -12,14 +12,16 @@ function isDue(s) {
 const TABS = [
   { id: 'builder',    label: 'Session',     icon: '🎵' },
   { id: 'practice',  label: 'Practice',    icon: '🎸' },
+  { id: 'lists',     label: 'Lists',       icon: '🎯' },
   { id: 'repertoire',label: 'Repertoire',  icon: '🎼' },
   { id: 'tabs',      label: 'Tabs',        icon: '📄' },
   { id: 'coach',     label: 'Coach',       icon: '🤖' },
 ]
 
 export default function Layout({ children }) {
-  const { view, setView, currentSession, songLog } = useStore()
+  const { view, setView, currentSession, songLog, practiceSongList } = useStore()
   const dueSongs = songLog.filter(isDue).length
+  const recentListSongs = practiceSongList.filter((s) => Date.now() - s.addedAt < 86400000 * 2).length
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
@@ -52,6 +54,11 @@ export default function Layout({ children }) {
                 {tab.id === 'practice' && currentSession.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-orange-500 border-2 border-gray-900 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
                     {currentSession.length}
+                  </span>
+                )}
+                {tab.id === 'lists' && recentListSongs > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 border-2 border-gray-900 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold leading-none">
+                    {recentListSongs > 9 ? '9+' : recentListSongs}
                   </span>
                 )}
                 {tab.id === 'repertoire' && dueSongs > 0 && (

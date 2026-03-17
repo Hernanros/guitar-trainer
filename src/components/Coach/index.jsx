@@ -2,13 +2,19 @@ import React, { useState, useRef, useEffect } from 'react'
 import useStore from '../../store/index.js'
 import { TECHNIQUE_COLORS } from '../../data/exercises.js'
 
+const DIFFICULTY_COLORS = {
+  beginner:     'bg-green-900 text-green-300',
+  intermediate: 'bg-yellow-900 text-yellow-300',
+  advanced:     'bg-red-900 text-red-300',
+}
+
 const SUGGESTED_PROMPTS = [
+  'Give me 20 funk songs for practicing strumming and timing',
   'Create a fingerpicking exercise in 6/8 for intermediate players',
+  'Give me 15 blues songs to practice phrasing and bends',
   'Make a funk rhythm exercise inspired by James Brown',
   'Write a legato exercise targeting the pinky finger',
-  'Create a blues phrasing exercise with call and response',
   'What should I practice to improve my speed?',
-  'How do I fix tension in my picking hand?',
 ]
 
 function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
@@ -34,11 +40,12 @@ ${historyLines || 'No history yet.'}
 
 ## Tool use rules — follow these exactly:
 - When the student asks you to CREATE, WRITE, ADD, or MAKE an exercise, call add_exercise_to_library immediately. Do NOT describe the exercise in text first — call the tool.
-- You may call the tool multiple times in one turn if the student asks for several exercises.
-- After calling the tool, write a short confirmation message (1-2 sentences max).
-- For all other questions, respond normally without calling the tool.
+- When the student asks for a list of songs to practice a skill (e.g. "give me funk songs for strumming", "songs for phrasing", "50 shuffle songs"), call add_songs_to_practice_list immediately. Do NOT list the songs in text first — call the tool. You may call it multiple times if multiple categories are requested.
+- You may call tools multiple times in one turn if the student asks for several exercises or lists.
+- After calling any tool, write a short confirmation message (1-2 sentences max).
+- For all other questions, respond normally without calling any tool.
 
-Valid technique values: scales, arpeggios, chords, legato, picking, fingerpicking, rhythm, theory, licks, slide, phrasing`
+Valid technique values for exercises and song skills: scales, arpeggios, chords, legato, picking, fingerpicking, rhythm, theory, licks, slide, phrasing`
 }
 
 function renderText(text) {
@@ -80,13 +87,45 @@ function ExerciseAddedCard({ exercise, onAddToSession }) {
   )
 }
 
+function SongsAddedCard({ category, songs, onGoToLists }) {
+  return (
+    <div className="border border-orange-700/60 bg-orange-950/30 rounded-xl p-4 space-y-3 w-full max-w-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold uppercase tracking-wide">
+          <span>🎯</span>
+          <span>{songs.length} songs added</span>
+        </div>
+        <span className="text-xs text-gray-400 truncate max-w-[160px]">{category}</span>
+      </div>
+      <div className="space-y-1 max-h-40 overflow-y-auto">
+        {songs.slice(0, 6).map((s, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className={`badge text-xs ${DIFFICULTY_COLORS[s.difficulty] || DIFFICULTY_COLORS.intermediate}`}>{s.difficulty?.[0]?.toUpperCase()}</span>
+            <span className="text-xs text-gray-200 truncate">{s.title}</span>
+            <span className="text-xs text-gray-500 truncate shrink-0">{s.artist}</span>
+          </div>
+        ))}
+        {songs.length > 6 && <p className="text-xs text-gray-500">+{songs.length - 6} more…</p>}
+      </div>
+      <button
+        onClick={onGoToLists}
+        className="text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors w-full text-center"
+      >
+        View in Lists tab →
+      </button>
+    </div>
+  )
+}
+
 export default function Coach() {
   const {
     exerciseLibrary,
     currentSession,
     exerciseHistory,
     addExerciseToLibrary,
+    addPracticeSongs,
     addToSession,
+    setView,
     coachDisplayMessages,
     coachApiMessages,
     appendCoachMessage,
@@ -144,12 +183,20 @@ export default function Coach() {
           for (const toolBlock of toolUseBlocks) {
             if (toolBlock.name === 'add_exercise_to_library') {
               const newExercise = addExerciseToLibrary(toolBlock.input)
-              // Show the exercise card inline in the chat immediately
               appendCoachMessage({ role: 'exercise_added', exercise: newExercise })
               toolResults.push({
                 type: 'tool_result',
                 tool_use_id: toolBlock.id,
                 content: `Exercise "${newExercise.name}" (id: ${newExercise.id}) added successfully.`,
+              })
+            } else if (toolBlock.name === 'add_songs_to_practice_list') {
+              const { category, songs } = toolBlock.input
+              const addedSongs = useStore.getState().addPracticeSongs({ category, songs })
+              appendCoachMessage({ role: 'songs_added', category, songs: addedSongs })
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: `Added ${addedSongs.length} songs to the "${category}" list successfully.`,
               })
             } else {
               toolResults.push({
@@ -229,6 +276,17 @@ export default function Coach() {
                     <ExerciseAddedCard
                       exercise={msg.exercise}
                       onAddToSession={(ex) => addToSession(ex)}
+                    />
+                  </div>
+                )
+              }
+              if (msg.role === 'songs_added') {
+                return (
+                  <div key={i} className="flex justify-start">
+                    <SongsAddedCard
+                      category={msg.category}
+                      songs={msg.songs}
+                      onGoToLists={() => setView('lists')}
                     />
                   </div>
                 )

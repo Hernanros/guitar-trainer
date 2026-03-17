@@ -57,6 +57,52 @@ const tools = [
       required: ['name', 'technique', 'targetBpm', 'startBpm', 'timeSignature', 'description', 'howToPlay', 'tips'],
     },
   },
+  {
+    name: 'add_songs_to_practice_list',
+    description:
+      'Add a curated list of songs to the user\'s Practice Lists tab, grouped under a named category. Use this when the user asks for song recommendations for a specific practice goal (e.g. "50 funk songs for strumming", "blues phrasing songs", "shuffle timing songs").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Name of the practice category or goal, e.g. "Funk Strumming & Timing", "Blues Phrasing", "Shuffle Rhythm"',
+        },
+        songs: {
+          type: 'array',
+          description: 'List of songs to add',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Song title' },
+              artist: { type: 'string', description: 'Artist name' },
+              difficulty: {
+                type: 'string',
+                enum: ['beginner', 'intermediate', 'advanced'],
+                description: 'Difficulty level',
+              },
+              skills: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Guitar skills/techniques this song develops, e.g. ["strumming", "timing", "rhythm"]',
+              },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Descriptive tags, e.g. ["16th notes", "syncopation", "groove"]',
+              },
+              notes: {
+                type: 'string',
+                description: 'Brief note on why this song is good for this practice area (1 sentence)',
+              },
+            },
+            required: ['title', 'artist', 'difficulty', 'skills'],
+          },
+        },
+      },
+      required: ['category', 'songs'],
+    },
+  },
 ]
 
 app.post('/api/chat', async (req, res) => {

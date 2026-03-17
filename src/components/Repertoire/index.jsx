@@ -130,49 +130,53 @@ function SongCard({ song }) {
     : []
 
   return (
-    <div className={`bg-gray-800 rounded-lg p-3 space-y-2 ${due ? 'ring-1 ring-yellow-700' : ''}`}>
+    <div className={`bg-gray-850 border rounded-xl p-4 space-y-3 transition-all ${
+      due ? 'border-yellow-700/60 shadow-sm shadow-yellow-900/20' : 'border-gray-700/50'
+    }`}>
+      {/* Title row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-100">{song.title}</span>
+            <span className="text-sm font-semibold text-gray-100">{song.title}</span>
             {due && (
-              <span className="text-xs bg-yellow-900 text-yellow-300 px-1.5 py-0.5 rounded font-medium">
-                ⏰ Due for review
+              <span className="text-xs bg-yellow-900/60 text-yellow-300 border border-yellow-700/40 px-2 py-0.5 rounded-full font-medium">
+                ⏰ Due
               </span>
             )}
           </div>
-          {song.artist && <p className="text-xs text-gray-500 mt-0.5">{song.artist}</p>}
+          {song.artist && <p className="text-xs text-gray-400 mt-0.5">{song.artist}</p>}
         </div>
         <button
           onClick={() => removeSongLog(song.id)}
-          className="shrink-0 text-gray-600 hover:text-red-400 text-xs transition-colors"
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:text-red-400 hover:bg-red-900/20 transition-all text-xs"
         >✕</button>
       </div>
 
+      {/* Status + practice info */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={cycleStatus}
-          className={`badge text-xs ${cfg.color} cursor-pointer hover:opacity-80 transition-opacity`}
+          className={`badge text-xs ${cfg.color} cursor-pointer hover:brightness-110 transition-all border border-transparent hover:border-white/10`}
           title="Click to advance status"
         >
           {cfg.label} →
         </button>
-
-        <span className="text-xs text-gray-600">
+        <span className="text-xs text-gray-400">
           {song.practiceCount === 0
             ? 'Never practiced'
             : days === 0
-            ? 'Practiced today'
+            ? '✓ Practiced today'
             : days === 1
             ? 'Practiced yesterday'
             : `${days}d ago · ${song.practiceCount}× total`}
         </span>
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => markSongPracticed(song.id)}
-          className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition-colors"
+          className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-600 transition-all"
         >
           ✓ Practiced today
         </button>
@@ -180,38 +184,43 @@ function SongCard({ song }) {
           href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist + ' guitar lesson')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors"
+          className="text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded-lg px-3 py-1.5 transition-all"
         >
           ▶ Lesson
         </a>
         <button
           onClick={() => setShowNotes((v) => !v)}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+            showNotes
+              ? 'text-orange-400 border-orange-800 bg-orange-900/20'
+              : 'text-gray-400 border-gray-700 hover:text-gray-200 hover:border-gray-500'
+          }`}
         >
           {song.notes ? '📝 Notes' : '+ Note'}
         </button>
       </div>
 
+      {/* Notes */}
       {showNotes && (
-        <div className="pt-1">
+        <div className="pt-1 border-t border-gray-700/50">
           {editingNotes ? (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <textarea
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
                 rows={2}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 resize-none"
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 resize-none"
                 placeholder="Notes, problem spots, what to work on…"
               />
-              <div className="flex gap-2">
-                <button onClick={saveNotes} className="text-xs text-orange-400 hover:text-orange-300">Save</button>
+              <div className="flex gap-3">
+                <button onClick={saveNotes} className="text-xs font-medium text-orange-400 hover:text-orange-300">Save</button>
                 <button onClick={() => { setEditingNotes(false); setNoteDraft(song.notes) }} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
               </div>
             </div>
           ) : (
             <p
               onClick={() => setEditingNotes(true)}
-              className="text-xs text-gray-400 leading-relaxed cursor-pointer hover:text-gray-300 italic"
+              className="text-xs text-gray-400 leading-relaxed cursor-pointer hover:text-gray-300 italic bg-gray-800/50 rounded-lg px-3 py-2"
             >
               {song.notes || 'Click to add a note…'}
             </p>
@@ -219,15 +228,16 @@ function SongCard({ song }) {
         </div>
       )}
 
+      {/* Related exercises */}
       {relatedExercises.length > 0 && (
-        <div className="pt-1 border-t border-gray-700 space-y-1">
-          <p className="text-xs text-gray-500">Related exercises:</p>
-          <div className="flex flex-wrap gap-1">
+        <div className="pt-1 border-t border-gray-700/50 space-y-1.5">
+          <p className="text-xs text-gray-400 font-medium">Add to session:</p>
+          <div className="flex flex-wrap gap-1.5">
             {relatedExercises.map((ex) => (
               <button
                 key={ex.id}
                 onClick={() => addToSession(ex)}
-                className={`badge text-xs ${TECHNIQUE_COLORS[ex.technique] || 'bg-gray-700 text-gray-300'} cursor-pointer hover:opacity-80`}
+                className={`badge text-xs ${TECHNIQUE_COLORS[ex.technique] || 'bg-gray-700 text-gray-300'} cursor-pointer hover:brightness-110 transition-all`}
                 title={`Add "${ex.name}" to session`}
               >
                 + {ex.name}
@@ -301,7 +311,7 @@ function NextSuggestions() {
         <div className="space-y-2">
           <p className="text-xs text-green-400 font-medium uppercase tracking-wide">
             ♫ From your Spotify
-            <span className="text-gray-600 font-normal normal-case ml-1">({allSpotifyUnlogged.length} unlearned)</span>
+            <span className="text-gray-500 font-normal normal-case ml-1">({allSpotifyUnlogged.length} unlearned)</span>
           </p>
           {spotifyUnlogged.map((track, i) => (
             <div key={i} className="flex items-center justify-between gap-2 bg-gray-800 rounded-lg px-3 py-2">

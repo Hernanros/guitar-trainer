@@ -506,7 +506,7 @@ export default function Tabs() {
                         {tab.tuning && tab.tuning !== 'Standard' && (
                           <span className="badge bg-gray-700 text-gray-300 text-xs">{tab.tuning}</span>
                         )}
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-gray-500">
                           {parsed.sections.length} section{parsed.sections.length !== 1 ? 's' : ''}
                         </span>
                         {linked && (
@@ -529,7 +529,7 @@ export default function Tabs() {
                       >
                         Delete
                       </button>
-                      <span className="text-gray-600 group-hover:text-orange-400 transition-colors text-lg">→</span>
+                      <span className="text-gray-500 group-hover:text-orange-400 transition-colors text-lg">→</span>
                     </div>
                   </div>
                 </div>

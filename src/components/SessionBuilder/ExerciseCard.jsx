@@ -11,7 +11,7 @@ export default function ExerciseCard({ exercise }) {
   const techniqueColor = TECHNIQUE_COLORS[exercise.technique] || TECHNIQUE_COLORS.theory
 
   return (
-    <div className={`card transition-all ${inSession ? 'border-orange-700' : ''}`}>
+    <div className={`card transition-all ${inSession ? 'border-orange-700' : 'hover:border-gray-700'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

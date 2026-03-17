@@ -135,13 +135,13 @@ export default function SongSuggestions({ techniques }) {
                   </button>
                 </div>
                 {inputError && <p className="text-xs text-red-400">{inputError}</p>}
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-500">
                   Get your Client ID at{' '}
                   <a
                     href="https://developer.spotify.com/dashboard"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-green-600 hover:text-green-500 underline"
+                    className="text-green-500 hover:text-green-400 underline"
                   >
                     developer.spotify.com/dashboard
                   </a>
@@ -158,7 +158,7 @@ export default function SongSuggestions({ techniques }) {
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-green-400 uppercase tracking-wide">
                   ♫ Your top songs to learn
-                  <span className="text-gray-600 font-normal normal-case ml-1">({spotify.topTracks.length} total)</span>
+                  <span className="text-gray-500 font-normal normal-case ml-1">({spotify.topTracks.length} total)</span>
                 </p>
                 <button
                   onClick={reshuffleTracks}
@@ -172,7 +172,7 @@ export default function SongSuggestions({ techniques }) {
                   <div key={i} className="flex items-center justify-between gap-2 bg-gray-800 rounded-lg px-3 py-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-100 truncate font-medium">{track.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{track.artist}</p>
+                      <p className="text-xs text-gray-400 truncate">{track.artist}</p>
                     </div>
                     <a
                       href={`https://www.youtube.com/results?search_query=${encodeURIComponent(track.title + ' ' + track.artist + ' guitar lesson')}`}

@@ -201,7 +201,7 @@ export default function Coach() {
               <h2 className="text-xl font-bold text-gray-100 mb-1">AI Guitar Coach</h2>
               <p className="text-gray-400 text-sm">Ask a question or describe an exercise — I'll write it straight into your library.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
@@ -217,7 +217,7 @@ export default function Coach() {
         ) : (
           <>
             <div className="flex justify-end mb-1">
-              <button onClick={clearCoachMessages} className="text-xs text-gray-600 hover:text-gray-400">
+              <button onClick={clearCoachMessages} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
                 Clear chat
               </button>
             </div>
@@ -274,7 +274,7 @@ export default function Coach() {
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
           placeholder="Describe an exercise or ask anything…"
           disabled={loading}
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 disabled:opacity-50"
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 disabled:opacity-50 transition-colors"
         />
         <button
           onClick={() => sendMessage(input)}

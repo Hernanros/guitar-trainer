@@ -189,13 +189,15 @@ export default function Practice() {
 
           {/* Metronome */}
           <div className="card space-y-5">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Metronome</h3>
+            <h3 className="section-title">Metronome</h3>
+
+            {/* Beat grid */}
             <div className="flex items-center justify-center gap-3">
               {[0, 1, 2, 3].map((beat) => (
                 <div
                   key={beat}
                   className={`
-                    w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg transition-all duration-75
+                    w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl transition-all duration-75
                     ${currentBeat === beat
                       ? beat === 0
                         ? 'bg-orange-500 text-white scale-110 shadow-lg shadow-orange-500/40'
@@ -208,28 +210,38 @@ export default function Practice() {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-center gap-3">
-              <button onClick={() => adjustBpm(-5)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center">−5</button>
-              <button onClick={() => adjustBpm(-1)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center">−</button>
+
+            {/* BPM controls — wraps to two rows on mobile */}
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button onClick={() => adjustBpm(-5)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center text-sm">−5</button>
+                <button onClick={() => adjustBpm(-1)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center text-lg">−</button>
+              </div>
               <input
                 type="number"
                 min={30} max={300}
                 value={bpm || ''}
                 onChange={(e) => setBpm(Number(e.target.value))}
-                className="w-20 bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-2xl font-bold text-center text-orange-400 focus:outline-none focus:border-orange-500"
+                className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-2xl font-bold text-center text-orange-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
               />
-              <button onClick={() => adjustBpm(1)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center">+</button>
-              <button onClick={() => adjustBpm(5)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center">+5</button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => adjustBpm(1)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center text-lg">+</button>
+                <button onClick={() => adjustBpm(5)} className="btn-secondary w-10 h-10 !px-0 !py-0 flex items-center justify-center text-sm">+5</button>
+              </div>
             </div>
+
             <input
               type="range" min={30} max={300} value={bpm || 60}
               onChange={(e) => setBpm(Number(e.target.value))}
-              className="w-full accent-orange-500"
+              className="w-full accent-orange-500 cursor-pointer"
             />
+
             <button
               onClick={toggleMetronome}
-              className={`w-full py-3 rounded-xl font-bold text-lg transition-colors ${
-                isPlaying ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-orange-500 hover:bg-orange-600 text-white'
+              className={`w-full py-3 rounded-xl font-bold text-lg transition-all duration-150 ${
+                isPlaying
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-100 border border-gray-600'
+                  : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/20'
               }`}
             >
               {isPlaying ? '⏹ Stop' : '▶ Start'}

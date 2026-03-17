@@ -128,16 +128,16 @@ Based on these stats, what should I focus on to improve?`
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <VolumeBar volume={volume} />
-            <p className="text-xs text-gray-500">Input level</p>
+            <p className="text-xs text-gray-400">Input level</p>
           </div>
           <div className="text-right">
             {detectedNote ? (
               <>
                 <p className="text-2xl font-bold text-orange-400">{detectedNote}</p>
-                <p className="text-xs text-gray-500">Detected note</p>
+                <p className="text-xs text-gray-400">Detected note</p>
               </>
             ) : (
-              <p className="text-xs text-gray-600">Play a note…</p>
+              <p className="text-xs text-gray-500">Play a note…</p>
             )}
           </div>
         </div>
@@ -150,11 +150,11 @@ Based on these stats, what should I focus on to improve?`
             <div className="text-center space-y-2">
               <div>
                 <p className="text-2xl font-bold text-gray-100">{sessionStats.notesDetected}</p>
-                <p className="text-xs text-gray-500">Notes detected</p>
+                <p className="text-xs text-gray-400">Notes detected</p>
               </div>
               <div>
                 <p className="text-lg font-semibold text-gray-300">{sessionStats.duration}s</p>
-                <p className="text-xs text-gray-500">Duration</p>
+                <p className="text-xs text-gray-400">Duration</p>
               </div>
             </div>
           </div>

@@ -83,7 +83,7 @@ export default function AddExerciseModal({ onClose }) {
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               placeholder="e.g. Chromatic Spider Walk"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
             />
             {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
           </div>
@@ -95,7 +95,7 @@ export default function AddExerciseModal({ onClose }) {
               <select
                 value={form.technique}
                 onChange={(e) => set('technique', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
               >
                 {TECHNIQUES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -107,7 +107,7 @@ export default function AddExerciseModal({ onClose }) {
               <select
                 value={form.timeSignature}
                 onChange={(e) => set('timeSignature', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
               >
                 {TIME_SIGS.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -126,7 +126,7 @@ export default function AddExerciseModal({ onClose }) {
                 max={300}
                 value={form.startBpm}
                 onChange={(e) => set('startBpm', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
               />
             </div>
             <div>
@@ -137,7 +137,7 @@ export default function AddExerciseModal({ onClose }) {
                 max={300}
                 value={form.targetBpm}
                 onChange={(e) => set('targetBpm', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
               />
               {errors.targetBpm && <p className="text-red-400 text-xs mt-1">{errors.targetBpm}</p>}
             </div>
@@ -184,7 +184,7 @@ export default function AddExerciseModal({ onClose }) {
                     value={tip}
                     onChange={(e) => setTip(i, e.target.value)}
                     placeholder={`Tip ${i + 1}`}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500"
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30"
                   />
                   {form.tips.length > 1 && (
                     <button

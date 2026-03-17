@@ -49,7 +49,7 @@ export default function SessionBuilder() {
     <>
       {showAddModal && <AddExerciseModal onClose={() => setShowAddModal(false)} />}
 
-      <div className="flex gap-6 h-full">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: Exercise Library */}
         <div className="flex-1 min-w-0 space-y-6">
           <div className="flex items-center justify-between">
@@ -64,11 +64,11 @@ export default function SessionBuilder() {
 
           {Object.entries(grouped).map(([technique, exercises]) => (
             <section key={technique}>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-800/60">
                 <span className={`badge ${TECHNIQUE_COLORS[technique] || 'bg-gray-700 text-gray-300'}`}>
                   {technique}
                 </span>
-                <span className="text-xs text-gray-500">{exercises.length}</span>
+                <span className="text-xs text-gray-400">{exercises.length} exercises</span>
               </div>
               <div className="space-y-3">
                 {exercises.map((ex) => (
@@ -80,7 +80,7 @@ export default function SessionBuilder() {
         </div>
 
         {/* Right: Session Panel */}
-        <div className="w-80 shrink-0 space-y-4">
+        <div className="w-full lg:w-80 shrink-0 space-y-4">
 
           {/* Saved Routines */}
           <div className="card">
@@ -123,7 +123,7 @@ export default function SessionBuilder() {
           </div>
 
           {/* Current Session */}
-          <div className="card sticky top-6">
+          <div className="card lg:sticky lg:top-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-100">
                 Current Session

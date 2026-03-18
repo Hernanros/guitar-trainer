@@ -3,18 +3,28 @@ import { useRef, useCallback, useEffect } from 'react'
 const LOOKAHEAD_MS = 25.0
 const SCHEDULE_AHEAD_S = 0.1
 
-export function useMetronome({ bpm, beatsPerMeasure = 4, onBeat }) {
+export const SUBDIVS_PER_BEAT = {
+  quarter: 1,
+  eighth: 2,
+  'eighth-triplet': 3,
+  sixteenth: 4,
+}
+
+export function useMetronome({ bpm, beatsPerMeasure = 4, subdivision = 'quarter', onBeat }) {
   const audioCtxRef = useRef(null)
   const timerRef = useRef(null)
   const nextNoteTimeRef = useRef(0)
-  const currentBeatRef = useRef(0)
+  const currentTickRef = useRef(0)
   const bpmRef = useRef(bpm)
   const onBeatRef = useRef(onBeat)
   const isPlayingRef = useRef(false)
+  const subdivRef = useRef(subdivision)
+  const beatsRef = useRef(beatsPerMeasure)
 
-  // Keep refs in sync without triggering restarts
   useEffect(() => { bpmRef.current = bpm }, [bpm])
   useEffect(() => { onBeatRef.current = onBeat }, [onBeat])
+  useEffect(() => { subdivRef.current = subdivision }, [subdivision])
+  useEffect(() => { beatsRef.current = beatsPerMeasure }, [beatsPerMeasure])
 
   const getAudioCtx = useCallback(() => {
     if (!audioCtxRef.current) {
@@ -23,38 +33,49 @@ export function useMetronome({ bpm, beatsPerMeasure = 4, onBeat }) {
     return audioCtxRef.current
   }, [])
 
-  const scheduleNote = useCallback((beatNumber, time) => {
+  const scheduleNote = useCallback((tickIndex, time) => {
     const ctx = getAudioCtx()
+    const subdivsPerBeat = SUBDIVS_PER_BEAT[subdivRef.current] || 1
+    const isMainBeat = tickIndex % subdivsPerBeat === 0
+    const isAccent = tickIndex === 0
+
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
-
     osc.connect(gain)
     gain.connect(ctx.destination)
 
-    const isAccent = beatNumber === 0
-    osc.frequency.value = isAccent ? 1000 : 800
-    gain.gain.setValueAtTime(isAccent ? 0.8 : 0.5, time)
+    if (isAccent) {
+      osc.frequency.value = 1000
+      gain.gain.setValueAtTime(0.8, time)
+    } else if (isMainBeat) {
+      osc.frequency.value = 800
+      gain.gain.setValueAtTime(0.5, time)
+    } else {
+      osc.frequency.value = 600
+      gain.gain.setValueAtTime(0.2, time)
+    }
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05)
 
     osc.start(time)
     osc.stop(time + 0.05)
 
-    // Schedule the visual callback slightly before to account for render lag
     const delay = (time - ctx.currentTime) * 1000
     setTimeout(() => {
-      if (onBeatRef.current) onBeatRef.current(beatNumber)
+      if (onBeatRef.current) onBeatRef.current(tickIndex)
     }, Math.max(0, delay - 10))
   }, [getAudioCtx])
 
   const scheduler = useCallback(() => {
     const ctx = getAudioCtx()
     while (nextNoteTimeRef.current < ctx.currentTime + SCHEDULE_AHEAD_S) {
-      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current)
-      const secondsPerBeat = 60.0 / bpmRef.current
-      nextNoteTimeRef.current += secondsPerBeat
-      currentBeatRef.current = (currentBeatRef.current + 1) % beatsPerMeasure
+      scheduleNote(currentTickRef.current, nextNoteTimeRef.current)
+      const subdivsPerBeat = SUBDIVS_PER_BEAT[subdivRef.current] || 1
+      const secondsPerTick = 60.0 / bpmRef.current / subdivsPerBeat
+      nextNoteTimeRef.current += secondsPerTick
+      const totalTicks = beatsRef.current * subdivsPerBeat
+      currentTickRef.current = (currentTickRef.current + 1) % totalTicks
     }
-  }, [getAudioCtx, scheduleNote, beatsPerMeasure])
+  }, [getAudioCtx, scheduleNote])
 
   const start = useCallback(() => {
     if (isPlayingRef.current) return
@@ -62,7 +83,7 @@ export function useMetronome({ bpm, beatsPerMeasure = 4, onBeat }) {
     if (ctx.state === 'suspended') ctx.resume()
 
     isPlayingRef.current = true
-    currentBeatRef.current = 0
+    currentTickRef.current = 0
     nextNoteTimeRef.current = ctx.currentTime + 0.05
 
     timerRef.current = setInterval(scheduler, LOOKAHEAD_MS)
@@ -84,7 +105,6 @@ export function useMetronome({ bpm, beatsPerMeasure = 4, onBeat }) {
     return !isPlayingRef.current
   }, [start, stop])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stop()

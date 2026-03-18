@@ -39,7 +39,7 @@ export default function Practice() {
   const [bpm, setBpm] = useState(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTick, setCurrentTick] = useState(-1)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [toast, setToast] = useState(null)
   const [subdivision, setSubdivision] = useState('quarter')
   const [beatsPerMeasure, setBeatsPerMeasure] = useState(4)
@@ -60,7 +60,7 @@ export default function Practice() {
     if (sessionItem) setBpm(sessionItem.sessionBpm)
     setIsPlaying(false)
     setCurrentTick(-1)
-    setExpanded(false)
+    setExpanded(true)
   }, [activeExerciseIndex, sessionItem?.exerciseId])
 
   // Timer controls

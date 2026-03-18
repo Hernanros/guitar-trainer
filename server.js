@@ -103,6 +103,21 @@ const tools = [
       required: ['category', 'songs'],
     },
   },
+  {
+    name: 'show_routine',
+    description:
+      'Display one of the user\'s saved practice routines as a rich card in the chat. Use this when the user asks to see, show, or load a specific routine, or asks what routines they have.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        routine_id: {
+          type: 'string',
+          description: 'The ID of the routine to display (from the saved routines list in the system prompt)',
+        },
+      },
+      required: ['routine_id'],
+    },
+  },
 ]
 
 app.post('/api/chat', async (req, res) => {

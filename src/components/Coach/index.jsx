@@ -17,7 +17,7 @@ const SUGGESTED_PROMPTS = [
   'What should I practice to improve my speed?',
 ]
 
-function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
+function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory, savedRoutines) {
   const libraryList = exerciseLibrary
     .map((e) => `- ${e.name} (${e.technique}, ${e.startBpm}→${e.targetBpm} BPM)`)
     .join('\n')
@@ -30,6 +30,19 @@ function buildSystemPrompt(exerciseLibrary, currentSession, exerciseHistory) {
     .filter(Boolean)
     .join('\n')
 
+  const routineLines = Object.values(savedRoutines)
+    .map((r) => {
+      const exercises = r.session
+        .map((s) => {
+          const ex = exerciseLibrary.find((e) => e.id === s.exerciseId)
+          return ex ? `${ex.name} (${s.sessionBpm} BPM)` : null
+        })
+        .filter(Boolean)
+        .join(', ')
+      return `- id:${r.id} "${r.name}": ${exercises || 'empty'}`
+    })
+    .join('\n')
+
   return `You are an expert guitar coach and curriculum designer.
 
 Student's exercise library (${exerciseLibrary.length} exercises):
@@ -38,9 +51,13 @@ ${libraryList || 'Empty'}
 Practice history:
 ${historyLines || 'No history yet.'}
 
+Saved routines (${Object.keys(savedRoutines).length}):
+${routineLines || 'None saved yet.'}
+
 ## Tool use rules — follow these exactly:
 - When the student asks you to CREATE, WRITE, ADD, or MAKE an exercise, call add_exercise_to_library immediately. Do NOT describe the exercise in text first — call the tool.
 - When the student asks for a list of songs to practice a skill (e.g. "give me funk songs for strumming", "songs for phrasing", "50 shuffle songs"), call add_songs_to_practice_list immediately. Do NOT list the songs in text first — call the tool. You may call it multiple times if multiple categories are requested.
+- When the student asks to see, load, or asks about their saved routines, call show_routine with the correct routine_id. If they ask to see all routines, call show_routine once per routine.
 - You may call tools multiple times in one turn if the student asks for several exercises or lists.
 - After calling any tool, write a short confirmation message (1-2 sentences max).
 - For all other questions, respond normally without calling any tool.
@@ -87,6 +104,41 @@ function ExerciseAddedCard({ exercise, onAddToSession }) {
   )
 }
 
+function RoutineCard({ routine, exerciseLibrary, onLoad }) {
+  const exercises = routine.session
+    .map((s) => ({ ...exerciseLibrary.find((e) => e.id === s.exerciseId), sessionBpm: s.sessionBpm }))
+    .filter((e) => e.id)
+  return (
+    <div className="border border-orange-700/60 bg-orange-950/20 rounded-xl p-4 space-y-3 w-full max-w-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-orange-400 text-xs font-semibold uppercase tracking-wide">
+          <span>📋</span>
+          <span>{routine.name}</span>
+        </div>
+        <span className="text-xs text-gray-500">{exercises.length} exercise{exercises.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="space-y-1">
+        {exercises.map((ex, i) => {
+          const color = TECHNIQUE_COLORS[ex.technique] || 'bg-gray-700 text-gray-300'
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`badge text-xs ${color}`}>{ex.technique}</span>
+              <span className="text-xs text-gray-200 truncate flex-1">{ex.name}</span>
+              <span className="text-xs text-gray-500 shrink-0">{ex.sessionBpm} BPM</span>
+            </div>
+          )
+        })}
+      </div>
+      <button
+        onClick={onLoad}
+        className="text-xs text-orange-400 hover:text-orange-300 border border-orange-800 hover:border-orange-600 rounded px-2 py-1 transition-colors w-full text-center"
+      >
+        Load into session →
+      </button>
+    </div>
+  )
+}
+
 function SongsAddedCard({ category, songs, onGoToLists }) {
   return (
     <div className="border border-orange-700/60 bg-orange-950/30 rounded-xl p-4 space-y-3 w-full max-w-sm">
@@ -122,9 +174,11 @@ export default function Coach() {
     exerciseLibrary,
     currentSession,
     exerciseHistory,
+    savedRoutines,
     addExerciseToLibrary,
     addPracticeSongs,
     addToSession,
+    loadRoutine,
     setView,
     coachDisplayMessages,
     coachApiMessages,
@@ -165,6 +219,7 @@ export default function Coach() {
               useStore.getState().exerciseLibrary,
               useStore.getState().currentSession,
               useStore.getState().exerciseHistory,
+              useStore.getState().savedRoutines,
             ),
           }),
         })
@@ -198,6 +253,24 @@ export default function Coach() {
                 tool_use_id: toolBlock.id,
                 content: `Added ${addedSongs.length} songs to the "${category}" list successfully.`,
               })
+            } else if (toolBlock.name === 'show_routine') {
+              const { routine_id } = toolBlock.input
+              const routine = useStore.getState().savedRoutines[routine_id]
+              if (routine) {
+                appendCoachMessage({ role: 'routine_shown', routine })
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: toolBlock.id,
+                  content: `Displayed routine "${routine.name}" with ${routine.session.length} exercises.`,
+                })
+              } else {
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: toolBlock.id,
+                  content: `Routine with id "${routine_id}" not found.`,
+                  is_error: true,
+                })
+              }
             } else {
               toolResults.push({
                 type: 'tool_result',
@@ -280,6 +353,17 @@ export default function Coach() {
                   </div>
                 )
               }
+              if (msg.role === 'routine_shown') {
+                return (
+                  <div key={i} className="flex justify-start">
+                    <RoutineCard
+                      routine={msg.routine}
+                      exerciseLibrary={exerciseLibrary}
+                      onLoad={() => { loadRoutine(msg.routine.id); setView('practice') }}
+                    />
+                  </div>
+                )
+              }
               if (msg.role === 'songs_added') {
                 return (
                   <div key={i} className="flex justify-start">
@@ -316,7 +400,7 @@ export default function Coach() {
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
               <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
-              <span className="ml-1">Writing exercise…</span>
+              <span className="ml-1">Thinking…</span>
             </div>
           </div>
         )}
